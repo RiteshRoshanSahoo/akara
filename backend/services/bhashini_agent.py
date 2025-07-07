@@ -32,13 +32,15 @@ class BhashiniAgent:
         self.auth_token = os.getenv("BHASHINI_AUTH_TOKEN")
         self.openai_key = os.getenv("OPENAI_API_KEY")
         
-        # Validate required credentials
-        if not all([self.user_id, self.ulca_api_key, self.auth_token]):
-            raise ValueError("Missing required Bhashini API credentials. Please check your .env file.")
+        # Check if credentials are still placeholders
+        if (self.user_id == "your_user_id_here" or 
+            self.ulca_api_key == "your_ulca_key_here" or 
+            self.auth_token == "your_auth_token_here" or
+            not self.user_id or not self.ulca_api_key or not self.auth_token):
+            raise ValueError("Bhashini API credentials not configured. Please update .env file with real API keys.")
         
         logger.info("BhashiniAgent credentials loaded successfully")
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     def get_pipeline_config(self, task_list):
         """Get pipeline configuration from Bhashini API"""
         headers = {
@@ -53,36 +55,19 @@ class BhashiniAgent:
             "pipelineRequestConfig": {"pipelineId": self.pipeline_id}
         }
         
-        try:
-            response = requests.post(self.config_url, json=payload, headers=headers, timeout=30)
-            response.raise_for_status()
-            logger.info("Pipeline configuration retrieved successfully")
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error getting pipeline config: {e}")
-            raise
+        response = requests.post(self.config_url, json=payload, headers=headers)
+        response.raise_for_status()
+        return response.json()
 
-    def encode_audio(self, audio_path: str) -> str:
+    def encode_audio(self, audio_path):
         """Encode audio file to base64 with proper formatting"""
-        try:
-            # Load and process audio
-            audio = AudioSegment.from_file(audio_path)
-            audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)
-            
-            # Convert to base64
-            buf = io.BytesIO()
-            audio.export(buf, format="wav")
-            encoded_audio = base64.b64encode(buf.getvalue()).decode("utf-8")
-            
-            logger.info(f"Audio encoded successfully. Duration: {len(audio)/1000:.2f}s")
-            return encoded_audio
-        
-        except Exception as e:
-            logger.error(f"Error encoding audio: {e}")
-            raise
+        audio = AudioSegment.from_file(audio_path)
+        audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)
+        buf = io.BytesIO()
+        audio.export(buf, format="wav")
+        return base64.b64encode(buf.getvalue()).decode("utf-8")
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    def run_pipeline(self, audio_path: str, source_lang: str = "hi", target_lang: str = "en") -> Dict:
+    def run_pipeline(self, audio_path, source_lang="hi", target_lang="en"):
         """
         Run complete pipeline: ASR -> Translation -> TTS
         Returns: {
@@ -91,97 +76,77 @@ class BhashiniAgent:
             "translated_audio": "base64 encoded audio"
         }
         """
-        try:
-            logger.info(f"Starting pipeline processing: {source_lang} -> {target_lang}")
-            
-            # Encode audio
-            audio_base64 = self.encode_audio(audio_path)
-            
-            # Define pipeline tasks
-            tasks = [
-                {"taskType": "asr", "config": {"language": {"sourceLanguage": source_lang}}},
-                {"taskType": "translation", "config": {"language": {"sourceLanguage": source_lang, "targetLanguage": target_lang}}},
-                {"taskType": "tts", "config": {"language": {"sourceLanguage": target_lang}}}
-            ]
-            
-            # Get pipeline configuration
-            config = self.get_pipeline_config(tasks)
-            
-            # Extract callback URL and auth details
-            callback_url = config["pipelineInferenceAPIEndPoint"]["callbackUrl"]
-            auth_name = config["pipelineInferenceAPIEndPoint"]["inferenceApiKey"]["name"]
-            auth_value = config["pipelineInferenceAPIEndPoint"]["inferenceApiKey"]["value"]
-            
-            # Prepare headers
-            headers = {
-                auth_name: auth_value,
-                "Content-Type": "application/json"
-            }
-            
-            # Prepare compute payload
-            compute_payload = {
-                "pipelineTasks": [
-                    {
-                        "taskType": "asr",
-                        "config": {
-                            "language": {"sourceLanguage": source_lang},
-                            "serviceId": config["pipelineResponseConfig"][0]["config"][0]["serviceId"],
-                            "audioFormat": "wav",
-                            "samplingRate": 16000
-                        }
-                    },
-                    {
-                        "taskType": "translation",
-                        "config": {
-                            "language": {"sourceLanguage": source_lang, "targetLanguage": target_lang},
-                            "serviceId": config["pipelineResponseConfig"][1]["config"][0]["serviceId"]
-                        }
-                    },
-                    {
-                        "taskType": "tts",
-                        "config": {
-                            "language": {"sourceLanguage": target_lang},
-                            "serviceId": config["pipelineResponseConfig"][2]["config"][0]["serviceId"],
-                            "gender": "female",
-                            "audioFormat": "wav",
-                            "samplingRate": 22050
-                        }
+        audio_base64 = self.encode_audio(audio_path)
+
+        tasks = [
+            {"taskType": "asr", "config": {"language": {"sourceLanguage": source_lang}}},
+            {"taskType": "translation", "config": {"language": {"sourceLanguage": source_lang, "targetLanguage": target_lang}}},
+            {"taskType": "tts", "config": {"language": {"sourceLanguage": target_lang}}}
+        ]
+
+        config = self.get_pipeline_config(tasks)
+        callback_url = config["pipelineInferenceAPIEndPoint"]["callbackUrl"]
+        auth_name = config["pipelineInferenceAPIEndPoint"]["inferenceApiKey"]["name"]
+        auth_value = config["pipelineInferenceAPIEndPoint"]["inferenceApiKey"]["value"]
+
+        headers = {
+            auth_name: auth_value,
+            "Content-Type": "application/json"
+        }
+
+        compute_payload = {
+            "pipelineTasks": [
+                {
+                    "taskType": "asr",
+                    "config": {
+                        "language": {"sourceLanguage": source_lang},
+                        "serviceId": config["pipelineResponseConfig"][0]["config"][0]["serviceId"],
+                        "audioFormat": "wav",
+                        "samplingRate": 16000
                     }
-                ],
-                "inputData": {
-                    "audio": [{"audioContent": audio_base64}],
-                    "input": [{"source": ""}]
+                },
+                {
+                    "taskType": "translation",
+                    "config": {
+                        "language": {"sourceLanguage": source_lang, "targetLanguage": target_lang},
+                        "serviceId": config["pipelineResponseConfig"][1]["config"][0]["serviceId"]
+                    }
+                },
+                {
+                    "taskType": "tts",
+                    "config": {
+                        "language": {"sourceLanguage": target_lang},
+                        "serviceId": config["pipelineResponseConfig"][2]["config"][0]["serviceId"],
+                        "gender": "female",
+                        "audioFormat": "wav",
+                        "samplingRate": 22050
+                    }
                 }
+            ],
+            "inputData": {
+                "audio": [{"audioContent": audio_base64}],
+                "input": [{"source": ""}]
             }
-            
-            # Make the request
-            response = requests.post(callback_url, json=compute_payload, headers=headers, timeout=60)
-            response.raise_for_status()
-            
-            # Process response
-            output = response.json()
-            logger.info("Pipeline processing completed successfully")
-            
-            # Extract results
-            transcript = output["pipelineResponse"][0]["output"][0]["source"]
-            translation = output["pipelineResponse"][1]["output"][0]["target"]
-            translated_audio = output["pipelineResponse"][2]["audio"][0]["audioContent"]
-            
-            result = {
-                "transcript": transcript,
-                "translation": translation,
-                "translated_audio": translated_audio,
-                "source_language": source_lang,
-                "target_language": target_lang,
-                "processing_time": time.time()
-            }
-            
-            logger.info(f"Pipeline results: transcript={len(transcript)} chars, translation={len(translation)} chars")
-            return result
-            
-        except Exception as e:
-            logger.error(f"Pipeline processing failed: {e}")
-            raise
+        }
+
+        response = requests.post(callback_url, json=compute_payload, headers=headers)
+        response.raise_for_status()
+        output = response.json()
+        logger.info(json.dumps(output, indent=2))
+
+        # Extract results according to your original code structure
+        transcript = output["pipelineResponse"][0]["output"][0]["source"]
+        translation = output["pipelineResponse"][1]["output"][0]["target"]
+        translated_audio = output["pipelineResponse"][2]["audio"][0]["audioContent"]
+        
+        return {
+            "transcript": transcript,
+            "translation": translation,
+            "translated_audio": translated_audio,
+            "source_language": source_lang,
+            "target_language": target_lang,
+            "processing_time": time.time()
+        }
 
     def get_supported_languages(self) -> Dict:
         """Get list of supported languages"""
@@ -215,17 +180,3 @@ class BhashiniAgent:
                 "ur": "Urdu"
             }
         }
-
-    def detect_language(self, text: str) -> str:
-        """Detect language of input text"""
-        try:
-            detected = detect(text)
-            # Map detected languages to supported ones
-            lang_mapping = {
-                'hi': 'hi', 'en': 'en', 'bn': 'bn', 'gu': 'gu',
-                'kn': 'kn', 'ml': 'ml', 'mr': 'mr', 'or': 'or',
-                'pa': 'pa', 'ta': 'ta', 'te': 'te', 'ur': 'ur'
-            }
-            return lang_mapping.get(detected, 'hi')  # Default to Hindi
-        except:
-            return 'hi'  # Default fallback
