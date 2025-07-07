@@ -107,15 +107,18 @@ user_problem_statement: "Build Akara - Multilingual AI-Based Voice Meeting Syste
 backend:
   - task: "BhashiniAgent Service Integration"
     implemented: true
-    working: "NA"
+    working: false
     file: "services/bhashini_agent.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Created BhashiniAgent class with Bhashini API integration, audio processing, and transcription pipeline. Requires API keys to test functionality."
+      - working: false
+        agent: "testing"
+        comment: "BhashiniAgent service is initialized but fails during actual transcription processing. This is expected behavior without real API keys. The service initialization works, but the pipeline execution fails with a 500 error."
 
   - task: "Audio Upload and Processing API"
     implemented: true
