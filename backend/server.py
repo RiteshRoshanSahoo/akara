@@ -1,8 +1,9 @@
+import os
+import sys
 from fastapi import FastAPI, APIRouter
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
-import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field
@@ -10,12 +11,14 @@ from typing import List
 import uuid
 from datetime import datetime
 
+# Add backend directory to path for imports
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 # Import transcription routes
 try:
     from routes.transcription import router as transcription_router
 except ImportError:
     # Fallback import for development
-    import sys
     sys.path.append('/app/backend')
     from routes.transcription import router as transcription_router
 
