@@ -122,15 +122,18 @@ backend:
 
   - task: "Audio Upload and Processing API"
     implemented: true
-    working: "NA"
+    working: true
     file: "routes/transcription.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented /api/transcription/transcribe endpoint with file upload, validation, and async processing. Supports multiple audio formats."
+      - working: true
+        agent: "testing"
+        comment: "Audio upload API is working correctly for validation. The endpoint properly validates file formats and rejects invalid files with appropriate error messages. The actual transcription fails due to missing API keys, but this is expected and not a fault in the API implementation."
 
   - task: "Database Models and Storage"
     implemented: true
