@@ -257,11 +257,7 @@ metadata:
   run_ui: true
 
 test_plan:
-  current_focus:
-    - "BhashiniAgent Service Integration"
-    - "Audio Upload and Processing API"
-    - "Database Models and Storage"
-    - "API Health and Language Support"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
