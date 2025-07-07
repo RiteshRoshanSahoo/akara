@@ -23,9 +23,6 @@ const Home = () => {
   const fileInputRef = useRef(null);
   const audioRef = useRef(null);
 
-  // Sample transcription for demo
-  const sampleTranscription = "The meeting today focused on project deadlines and resource allocation. The team discussed adjusting timelines and collaborating closely across departments to ensure all milestones are met efficiently.";
-
   useEffect(() => {
     fetchSupportedLanguages();
     checkServerHealth();
@@ -146,7 +143,11 @@ const Home = () => {
       
     } catch (error) {
       console.error("Transcription error:", error);
-      setError(error.response?.data?.detail || "Failed to process audio. Please try again.");
+      if (error.response?.status === 503) {
+        setError("Bhashini API credentials not configured. Please contact administrator.");
+      } else {
+        setError(error.response?.data?.detail || "Failed to process audio. Please try again.");
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -162,12 +163,6 @@ const Home = () => {
       audioRef.current.src = audioUrl;
       audioRef.current.play();
     }
-  };
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -222,28 +217,25 @@ const Home = () => {
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-8">
-          {/* Title */}
+          {/* Title - Matching Screenshot Exactly */}
           <div className="text-center space-y-4">
             <div className="md:hidden mb-4">
               <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 inline-block">
                 <p className="text-white/70 text-sm font-light">Team MOM Hackathon Presents</p>
               </div>
             </div>
-            <h1 className="text-4xl md:text-6xl font-bold text-white text-center leading-tight">
-              Akara
+            <h1 className="text-4xl md:text-5xl font-bold text-white text-center leading-tight">
+              Transcribe and<br />Translate Audio
             </h1>
-            <p className="text-xl md:text-2xl text-white/80 font-light text-center max-w-4xl">
-              Multilingual AI-Based Voice Meeting System
-            </p>
           </div>
 
-          {/* Main Interface */}
-          <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Main Interface - Exactly matching screenshot layout */}
+          <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left Column */}
             <div className="space-y-6">
-              {/* Upload File Section */}
+              {/* Upload File Section - Exact match */}
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
-                <h3 className="text-xl font-semibold text-white mb-4">Upload File</h3>
+                <h3 className="text-xl font-semibold text-white mb-4 text-center">Upload File</h3>
                 <div
                   className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 cursor-pointer ${
                     dragActive ? 'border-blue-400 bg-blue-400/10' : 'border-white/30 hover:border-white/50'
@@ -268,8 +260,10 @@ const Home = () => {
                       </svg>
                     </div>
                     <div>
-                      <p className="text-white font-medium">Choose File</p>
-                      <p className="text-white/60 text-sm mt-1">
+                      <button className="px-6 py-3 bg-white/20 hover:bg-white/30 text-white rounded-xl font-medium transition-all duration-300">
+                        Choose File
+                      </button>
+                      <p className="text-white/60 text-sm mt-2">
                         {selectedFile ? selectedFile.name : "No file selected"}
                       </p>
                     </div>
@@ -277,20 +271,17 @@ const Home = () => {
                 </div>
               </div>
 
-              {/* Model Selector */}
+              {/* Select Model Section - Exact match */}
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
-                <h3 className="text-xl font-semibold text-white mb-4">Select Model</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-white/80 text-sm font-medium mb-2">AI Model</label>
-                    <select
-                      value={selectedModel}
-                      onChange={(e) => setSelectedModel(e.target.value)}
-                      className="w-full p-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-white appearance-none focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    >
-                      <option value="bhashini">Bhashini (Government of India)</option>
-                    </select>
-                  </div>
+                <h3 className="text-xl font-semibold text-white mb-4 text-center">Select Model</h3>
+                <select
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  className="w-full p-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-white appearance-none focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                  <option value="bhashini">Choose a model</option>
+                </select>
+                <div className="grid grid-cols-2 gap-4 mt-4">
                   <div>
                     <label className="block text-white/80 text-sm font-medium mb-2">Source Language</label>
                     <select
@@ -303,18 +294,18 @@ const Home = () => {
                       ))}
                     </select>
                   </div>
-                </div>
-                <div className="mt-4">
-                  <label className="block text-white/80 text-sm font-medium mb-2">Target Language</label>
-                  <select
-                    value={targetLanguage}
-                    onChange={(e) => setTargetLanguage(e.target.value)}
-                    className="w-full p-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-white appearance-none focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  >
-                    {Object.entries(supportedLanguages.target_languages || {}).map(([code, name]) => (
-                      <option key={code} value={code}>{name}</option>
-                    ))}
-                  </select>
+                  <div>
+                    <label className="block text-white/80 text-sm font-medium mb-2">Target Language</label>
+                    <select
+                      value={targetLanguage}
+                      onChange={(e) => setTargetLanguage(e.target.value)}
+                      className="w-full p-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-white appearance-none focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    >
+                      {Object.entries(supportedLanguages.target_languages || {}).map(([code, name]) => (
+                        <option key={code} value={code}>{name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <button
                   onClick={handleTranscribe}
@@ -335,35 +326,25 @@ const Home = () => {
 
             {/* Right Column */}
             <div className="space-y-6">
-              {/* Transcription Display */}
+              {/* Transcription Display - Exact match */}
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 min-h-[200px]">
-                <h3 className="text-xl font-semibold text-white mb-4">Live Transcription</h3>
+                <h3 className="text-xl font-semibold text-white mb-4 text-center">Transcription</h3>
                 <div className="bg-white/5 rounded-xl p-4 min-h-[150px] max-h-[300px] overflow-y-auto">
-                  <p className="text-white/90 leading-relaxed">
-                    {transcription || sampleTranscription}
+                  <p className="text-white/90 leading-relaxed text-center">
+                    {transcription || "The meeting today focused on project deadlines and resource allocation. The team discussed adjusting timelines and collaborating closely across departments to ensure all milestones are met efficiently."}
                   </p>
                 </div>
                 {processingTime > 0 && (
-                  <div className="mt-4 text-white/60 text-sm">
+                  <div className="mt-4 text-white/60 text-sm text-center">
                     Processing time: {processingTime.toFixed(2)}s
                   </div>
                 )}
               </div>
 
-              {/* Translation Display */}
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 min-h-[200px]">
-                <h3 className="text-xl font-semibold text-white mb-4">Translation</h3>
-                <div className="bg-white/5 rounded-xl p-4 min-h-[150px] max-h-[300px] overflow-y-auto">
-                  <p className="text-white/90 leading-relaxed">
-                    {translation || "Translation will appear here after processing..."}
-                  </p>
-                </div>
-              </div>
-
-              {/* Translated Audio Playback */}
+              {/* Translated Audio Playback - Exact match */}
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
-                <h3 className="text-xl font-semibold text-white mb-4">Translated Audio Playback</h3>
-                <div className="flex items-center justify-between">
+                <h3 className="text-xl font-semibold text-white mb-4 text-center">Translated Audio Playback</h3>
+                <div className="flex items-center justify-center">
                   <button
                     onClick={playTranslatedAudio}
                     disabled={!translatedAudio}
@@ -387,7 +368,7 @@ const Home = () => {
 
           {/* Error Display */}
           {error && (
-            <div className="w-full max-w-6xl">
+            <div className="w-full max-w-4xl">
               <div className="bg-red-500/20 backdrop-blur-md rounded-2xl p-4 border border-red-500/30">
                 <p className="text-red-200 text-center">{error}</p>
               </div>
