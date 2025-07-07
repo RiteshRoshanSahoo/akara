@@ -1,4 +1,5 @@
 import os
+import sys
 import tempfile
 import time
 from typing import Optional
@@ -7,6 +8,9 @@ from fastapi.responses import JSONResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 import logging
 from pathlib import Path
+
+# Add backend directory to path for imports
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Import models and services
 from models.transcription import (
