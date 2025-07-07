@@ -331,7 +331,7 @@ const Home = () => {
                 <h3 className="text-xl font-semibold text-white mb-4 text-center">Transcription</h3>
                 <div className="bg-white/5 rounded-xl p-4 min-h-[150px] max-h-[300px] overflow-y-auto">
                   <p className="text-white/90 leading-relaxed text-center">
-                    {transcription || "The meeting today focused on project deadlines and resource allocation. The team discussed adjusting timelines and collaborating closely across departments to ensure all milestones are met efficiently."}
+                    {transcription || ""}
                   </p>
                 </div>
                 {processingTime > 0 && (
