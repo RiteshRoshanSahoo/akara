@@ -11,7 +11,13 @@ import uuid
 from datetime import datetime
 
 # Import transcription routes
-from routes.transcription import router as transcription_router
+try:
+    from routes.transcription import router as transcription_router
+except ImportError:
+    # Fallback import for development
+    import sys
+    sys.path.append('/app/backend')
+    from routes.transcription import router as transcription_router
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
