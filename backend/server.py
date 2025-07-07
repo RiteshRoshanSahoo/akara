@@ -10,6 +10,8 @@ from typing import List
 import uuid
 from datetime import datetime
 
+# Import transcription routes
+from routes.transcription import router as transcription_router
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -20,7 +22,11 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # Create the main app without a prefix
-app = FastAPI()
+app = FastAPI(
+    title="Akara - Multilingual AI-Based Voice Meeting System",
+    description="Team MOM Hackathon presents Akara - Advanced audio transcription and translation system",
+    version="1.0.0"
+)
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -38,7 +44,30 @@ class StatusCheckCreate(BaseModel):
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {
+        "message": "Akara Backend API is running",
+        "version": "1.0.0",
+        "description": "Multilingual AI-Based Voice Meeting System",
+        "team": "Team MOM Hackathon"
+    }
+
+@api_router.get("/health")
+async def health_check():
+    """Comprehensive health check"""
+    try:
+        # Test database connection
+        await db.status_checks.count_documents({})
+        db_status = "connected"
+    except Exception as e:
+        db_status = f"error: {e}"
+    
+    return {
+        "status": "healthy" if db_status == "connected" else "unhealthy",
+        "database": db_status,
+        "version": "1.0.0",
+        "service": "Akara API",
+        "timestamp": datetime.utcnow().isoformat()
+    }
 
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):
@@ -52,9 +81,13 @@ async def get_status_checks():
     status_checks = await db.status_checks.find().to_list(1000)
     return [StatusCheck(**status_check) for status_check in status_checks]
 
-# Include the router in the main app
+# Include the main API router
 app.include_router(api_router)
 
+# Include transcription routes
+app.include_router(transcription_router)
+
+# CORS Configuration
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -70,6 +103,30 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup"""
+    logger.info("Starting Akara API server...")
+    logger.info("Team MOM Hackathon - Akara v1.0.0")
+    
+    # Test database connection
+    try:
+        await db.status_checks.count_documents({})
+        logger.info("Database connection established successfully")
+    except Exception as e:
+        logger.error(f"Database connection failed: {e}")
+    
+    # Initialize transcription service
+    try:
+        from services.bhashini_agent import BhashiniAgent
+        agent = BhashiniAgent()
+        logger.info("BhashiniAgent initialized successfully")
+    except Exception as e:
+        logger.error(f"BhashiniAgent initialization failed: {e}")
+        logger.error("Make sure to set your API keys in the .env file")
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    """Clean up on shutdown"""
+    logger.info("Shutting down Akara API server...")
     client.close()
