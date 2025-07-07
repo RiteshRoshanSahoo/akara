@@ -152,15 +152,18 @@ backend:
 
   - task: "API Health and Language Support"
     implemented: true
-    working: "NA"
+    working: true
     file: "routes/transcription.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Added health check endpoints and supported languages API for frontend integration."
+      - working: true
+        agent: "testing"
+        comment: "Health check and language support endpoints are working correctly. The /api/health endpoint returns proper status information. The /api/transcription/languages endpoint successfully returns the list of supported languages and models."
 
   - task: "FastAPI Server Configuration"
     implemented: true
