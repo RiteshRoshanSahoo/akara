@@ -137,15 +137,18 @@ backend:
 
   - task: "Database Models and Storage"
     implemented: true
-    working: "NA"
+    working: true
     file: "models/transcription.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Created comprehensive Pydantic models for transcription requests, responses, and database records."
+      - working: true
+        agent: "testing"
+        comment: "Database models are correctly implemented and working. The status endpoint successfully creates and retrieves records from the database, confirming that the MongoDB connection and models are functioning properly."
 
   - task: "API Health and Language Support"
     implemented: true
